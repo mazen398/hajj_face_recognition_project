@@ -1,0 +1,2 @@
+Put your test photos in this folder.
+Leave it empty if you only want to fit PCA on the training photos.

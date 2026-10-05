@@ -40,3 +40,7 @@ class PCA:
 
     def fit_transform(self, X):
         return self.fit(X).transform(X)
+
+    def inverse_transform(self, scores):
+        recovered = np.asarray(scores, dtype=float) @ self.components_
+        return recovered * self.scale_ + self.mean_
