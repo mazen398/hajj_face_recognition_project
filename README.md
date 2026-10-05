@@ -1,88 +1,65 @@
-# PCA on photos — one file
+# PCA face recognition (eigenfaces)
 
-`pca_photos.py` is the whole thing. You do **not** move your photos anywhere. You tell the file where your photos already live.
+One file: `pca_photos.py`. It learns eigenfaces from training photos, recognises test photos it has never seen, and reports **accuracy**.
 
-## The important part
+## Important for accuracy
 
-This code is running on a **cloud computer**, not on your laptop. Your photos are on **your** laptop. They cannot see each other. So you run the file on your own machine.
-
-## Steps on Windows
-
-**1. Make a folder for the code**
-
-Desktop, right-click, New > Folder. Name it `pca`.
-
-**2. Get the file into it**
-
-Open `pca_photos.py` in Cursor, select all, copy. On your Desktop make a new file `C:\Users\darks\Desktop\pca\pca_photos.py`, paste, save.
-
-**3. Find your photo folder**
-
-Open the folder with your photos in File Explorer. Click the address bar at the top. It shows something like:
-
-```
-C:\Users\darks\Pictures\dataset
-```
-
-Copy that.
-
-**4. Put that path in the file**
-
-Do **not** double-click `pca_photos.py`. Double-clicking *runs* it. To edit it, right-click the file, choose `Open with`, then `Notepad`.
-
-Change the one marked line:
+Accuracy only exists when there is more than one person to tell apart. So point at the folder that **contains one subfolder per person**, not at a single person:
 
 ```python
-PHOTOS_FOLDER = r"C:\Users\darks\Pictures\dataset"
+# right - gives accuracy
+PHOTOS_FOLDER = r"C:\Users\darks\Desktop\data_set\105_classes_pins_dataset"
+
+# wrong - only one person, nothing to classify
+PHOTOS_FOLDER = r"C:\...\105_classes_pins_dataset\pins_Chris Pratt"
 ```
 
-Keep the `r` and the quotes. Change nothing else.
-
-**5. Install the libraries, once**
-
-Open a terminal in that folder and run:
+## Run it
 
 ```bash
 pip install numpy matplotlib pillow
-```
-
-**6. Run it**
-
-```bash
 python pca_photos.py
 ```
 
-**7. Look at the results**
+## Where everything is, for your report
 
-A folder called `pca_results` appears next to the file. Open it.
+Everything lands in a folder named **`pca_results`**, created right next to `pca_photos.py`.
 
-## The black window flashes and disappears
-
-That happens when you double-click the file. Windows runs it, and the console closes the moment it ends. The file now waits on `Press Enter to close this window...`, so the message stays up either way — including when something goes wrong. Read what it says before pressing Enter.
-
-Remember: double-click = run, right-click > Open with > Notepad = edit.
-
-## What you get
-
-| file | what it means |
+| file | what to say about it in your report |
 | --- | --- |
-| `average_photo.png` | the average of all your photos |
-| `patterns_learned.png` | the main visual patterns PCA found |
-| `train_before_after.png` | your photo next to the PCA rebuild |
-| `test_before_after.png` | same, on photos the model never saw |
-| `train_scores.csv` | every training photo turned into numbers |
-| `test_scores.csv` | held-out photos, plus a rebuild error per photo |
-| `how_much_each_pattern_matters.png` | which patterns carry the detail |
+| `RESULTS.txt` | every number in one place: accuracy, splits, per-person scores. Screenshot this first. |
+| `test_predictions.png` | test faces with CORRECT in green and WRONG in red |
+| `accuracy_vs_eigenfaces.png` | accuracy rising as you keep more components, then flattening |
+| `eigenfaces.png` | the principal components drawn as faces |
+| `average_face.png` | the mean face PCA subtracts before fitting |
+| `how_much_each_pattern_matters.png` | the scree plot |
+| `test_rebuilt.png` | original vs reconstruction from components only |
+| `test_predictions.csv` | per-photo: true person, predicted person, correct flag, PCA values |
+| `train_scores.csv` | every training photo as PCA numbers |
 
-## Train and test
+## What the numbers mean
 
-You don't split anything by hand. The file takes the **first 80%** of your photos to learn from and **holds back the last 20%** to test on. Change `TEST_SHARE` if you want a different split.
+- **Accuracy** — share of unseen test photos matched to the right person.
+- **Random guessing** — printed next to accuracy so you can show the model beats chance.
+- **Detail retained** — how much of the image variation the kept eigenfaces preserve.
+- **Compression** — 4096 pixels reduced to roughly 100 numbers per photo. That is the point of PCA.
 
-## Knobs, if you want them
+## Method, if you need to write it up
+
+1. Every photo is converted to grayscale and resized to 64x64, giving a 4096-value vector.
+2. Photos are split per person, so each person appears in both train and test.
+3. PCA is fit **only** on the training set. The test set is never seen during fitting.
+4. Both sets are projected onto the top components (the eigenfaces).
+5. Each test face is labelled with its nearest training face in that reduced space (1-nearest-neighbour, Euclidean distance).
+
+## Settings you can change
 
 ```python
-IMAGE_SIZE = 64      # bigger = more detail, slower
-N_COMPONENTS = 50    # how many patterns to learn
-TEST_SHARE = 0.2     # held-out share
-MAX_PHOTOS = 4000    # cap, so thousands of photos still fit in memory
+IMAGE_SIZE = 64       # bigger = more detail, slower
+N_COMPONENTS = 100    # how many eigenfaces to keep
+TEST_SHARE = 0.25     # held-out share per person
+MAX_PEOPLE = 20       # raise toward 105 for the full dataset
+MAX_PER_PERSON = 40   # cap per person, keeps the run fast
 ```
+
+Changing `MAX_PEOPLE` and `N_COMPONENTS` and recording how accuracy moves makes a good results section.
