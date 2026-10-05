@@ -1,2 +1,0 @@
-Put your training photos in this folder.
-Subfolders are optional. If you use them, the folder name is the label.
