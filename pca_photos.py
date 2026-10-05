@@ -16,7 +16,7 @@ Double-clicking it RUNS it instead of opening it.
 """
 
 import traceback
-from collections import Counter, defaultdict
+from collections import defaultdict
 from pathlib import Path
 
 import matplotlib
