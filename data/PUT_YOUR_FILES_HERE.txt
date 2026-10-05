@@ -1,0 +1,4 @@
+Put your training table in this folder.
+If you have a separate test table, put that here too.
+
+Then open run.py and set TRAIN_PATH / TEST_PATH to those file names.
