@@ -28,7 +28,9 @@ Copy that.
 
 **4. Put that path in the file**
 
-Open `pca_photos.py` and change the one marked line:
+Do **not** double-click `pca_photos.py`. Double-clicking *runs* it. To edit it, right-click the file, choose `Open with`, then `Notepad`.
+
+Change the one marked line:
 
 ```python
 PHOTOS_FOLDER = r"C:\Users\darks\Pictures\dataset"
@@ -53,6 +55,12 @@ python pca_photos.py
 **7. Look at the results**
 
 A folder called `pca_results` appears next to the file. Open it.
+
+## The black window flashes and disappears
+
+That happens when you double-click the file. Windows runs it, and the console closes the moment it ends. The file now waits on `Press Enter to close this window...`, so the message stays up either way — including when something goes wrong. Read what it says before pressing Enter.
+
+Remember: double-click = run, right-click > Open with > Notepad = edit.
 
 ## What you get
 
