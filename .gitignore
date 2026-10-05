@@ -1,0 +1,11 @@
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.ipynb_checkpoints/
+.streamlit/secrets.toml
+data/uploads/
+*.xlsx
+!data/iris.csv
+!data/sensors.csv
+.DS_Store
