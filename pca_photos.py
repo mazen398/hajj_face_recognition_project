@@ -22,7 +22,9 @@ import numpy as np
 from PIL import Image
 
 # ============== CHANGE THIS ONE LINE ==============
-PHOTOS_FOLDER = r"C:\Users\darks\Desktop\my_photos"
+PHOTOS_FOLDER = r"C:\Users\darks\Desktop\data_set\105_classes_pins_dataset\pins_Chris Pratt"
+# To run on all 105 people instead, drop the last part:
+# PHOTOS_FOLDER = r"C:\Users\darks\Desktop\data_set\105_classes_pins_dataset"
 # ==================================================
 
 IMAGE_SIZE = 64  # each photo is resized to 64x64
@@ -83,7 +85,18 @@ def load_photos(folder):
             print(f"  loaded {i}/{len(paths)}")
     if len(rows) < 4:
         raise SystemExit("Need at least 4 readable photos.")
-    return np.stack(rows), kept
+
+    # Shuffle so the test split isn't one whole subfolder when photos are
+    # grouped by person.
+    order = np.random.default_rng(0).permutation(len(rows))
+    X = np.stack(rows)[order]
+    kept = [kept[i] for i in order]
+    return X, kept
+
+
+def label_of(path, root):
+    parent = path.parent
+    return parent.name if parent != root else ""
 
 
 def grid(images, title, path, n=16):
@@ -140,11 +153,11 @@ def main():
     out = Path(__file__).parent / "pca_results"
     out.mkdir(exist_ok=True)
 
-    header = "file," + ",".join(f"PC{i+1}" for i in range(train_scores.shape[1]))
+    header = "file,person," + ",".join(f"PC{i+1}" for i in range(train_scores.shape[1]))
     with open(out / "train_scores.csv", "w") as f:
         f.write(header + "\n")
         for p, row in zip(train_paths, train_scores):
-            f.write(p.name + "," + ",".join(f"{v:.5f}" for v in row) + "\n")
+            f.write(f"{p.name},{label_of(p, folder)}," + ",".join(f"{v:.5f}" for v in row) + "\n")
 
     fig, ax = plt.subplots(figsize=(7, 3.5))
     ax.bar(range(1, len(model.explained_variance_ratio_) + 1), model.explained_variance_ratio_)
@@ -177,7 +190,11 @@ def main():
         with open(out / "test_scores.csv", "w") as f:
             f.write(header + ",rebuild_error\n")
             for p, row, e in zip(test_paths, test_scores, error):
-                f.write(p.name + "," + ",".join(f"{v:.5f}" for v in row) + f",{e:.6f}\n")
+                f.write(
+                    f"{p.name},{label_of(p, folder)},"
+                    + ",".join(f"{v:.5f}" for v in row)
+                    + f",{e:.6f}\n"
+                )
         before_after(X_test, rebuilt, test_paths, out / "test_before_after.png")
         print(f"\nTest photos average rebuild error: {error.mean():.5f}  (lower is better)")
 
