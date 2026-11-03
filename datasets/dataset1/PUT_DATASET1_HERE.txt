@@ -1,0 +1,11 @@
+Put the FIRST dataset here, one folder per person.
+
+    datasets/dataset1/person01/image1.png
+    datasets/dataset1/person01/image2.png
+    datasets/dataset2/person02/image1.png
+
+The folder name is used as the identity label.
+Each person needs at least 2 images so they can appear in both the
+training and the testing split.
+
+Delete this file once your data is in place.

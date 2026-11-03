@@ -1,65 +1,96 @@
-# PCA face recognition (eigenfaces)
+# Facial recognition experiment: PCA + KNN vs PCA + LDA + KNN
 
-One file: `pca_photos.py`. It learns eigenfaces from training photos, recognises test photos it has never seen, and reports **accuracy**.
+Two face datasets are tested **completely separately** using the same system and
+the same fixed settings, so their results can be compared fairly.
 
-## Important for accuracy
+## Project structure
 
-Accuracy only exists when there is more than one person to tell apart. So point at the folder that **contains one subfolder per person**, not at a single person:
-
-```python
-# right - gives accuracy
-PHOTOS_FOLDER = r"C:\Users\darks\Desktop\data_set\105_classes_pins_dataset"
-
-# wrong - only one person, nothing to classify
-PHOTOS_FOLDER = r"C:\...\105_classes_pins_dataset\pins_Chris Pratt"
 ```
+datasets/
+    dataset1/        put the first dataset here
+    dataset2/        put the second dataset here
+results/
+    dataset1/        outputs for dataset1 only
+    dataset2/        outputs for dataset2 only
+src/
+    data_loader.py   folders of images  ->  X (features) and y (labels)
+    preprocessing.py one image file     ->  one 4096-value vector
+    experiments.py   the two pipelines, the split, the training, the report
+    evaluation.py    CSV, accuracy chart, confusion matrices
+main.py              runs the whole experiment on each dataset in turn
+requirements.txt
+```
+
+## Dataset layout
+
+One folder per person. The folder name is the identity label.
+
+```
+datasets/dataset1/person01/image1.png
+datasets/dataset1/person01/image2.png
+datasets/dataset1/person02/image1.png
+```
+
+Each person needs at least 2 images so they can appear in both the training and
+the testing split.
 
 ## Run it
 
 ```bash
-pip install numpy matplotlib pillow
-python pca_photos.py
+pip install -r requirements.txt
+python main.py
 ```
 
-## Where everything is, for your report
+## What the code does
 
-Everything lands in a folder named **`pca_results`**, created right next to `pca_photos.py`.
+**Preprocessing**, identical for both datasets, using OpenCV only:
+read the image, convert to grayscale, resize to 64 x 64, scale pixels from
+0-255 to 0-1, flatten into 4096 values.
 
-| file | what to say about it in your report |
+**Split**, done separately for each dataset: 80% training / 20% testing,
+stratified by identity, `random_state=42`. There is no validation set, and the
+test set is used exactly once at the end.
+
+**Experiment 1** — `PCA -> KNN`
+PCA keeps 95% of the variance, then KNN classifies with `n_neighbors=5` and
+`weights="distance"`.
+
+**Experiment 2** — `PCA -> LDA -> KNN`
+PCA keeps 95% of the variance, LDA then uses the labels to separate identities,
+and the same KNN settings classify.
+
+Both are scikit-learn `Pipeline` objects, so PCA and LDA are fitted on the
+training data only and then applied to the test data. That is what prevents
+data leakage.
+
+## Output files, per dataset
+
+| file | contents |
 | --- | --- |
-| `RESULTS.txt` | every number in one place: accuracy, splits, per-person scores. Screenshot this first. |
-| `test_predictions.png` | test faces with CORRECT in green and WRONG in red |
-| `accuracy_vs_eigenfaces.png` | accuracy rising as you keep more components, then flattening |
-| `eigenfaces.png` | the principal components drawn as faces |
-| `average_face.png` | the mean face PCA subtracts before fitting |
-| `how_much_each_pattern_matters.png` | the scree plot |
-| `test_rebuilt.png` | original vs reconstruction from components only |
-| `test_predictions.csv` | per-photo: true person, predicted person, correct flag, PCA values |
-| `train_scores.csv` | every training photo as PCA numbers |
+| `final_model_comparison.csv` | one row per model with its test accuracy |
+| `accuracy_comparison.png` | bar chart comparing the two models |
+| `confusion_matrix_pca_knn.png` | confusion matrix for Experiment 1 |
+| `confusion_matrix_pca_lda_knn.png` | confusion matrix for Experiment 2 |
 
-## What the numbers mean
+`results/dataset1/` and `results/dataset2/` are written independently and are
+never mixed.
 
-- **Accuracy** — share of unseen test photos matched to the right person.
-- **Random guessing** — printed next to accuracy so you can show the model beats chance.
-- **Detail retained** — how much of the image variation the kept eigenfaces preserve.
-- **Compression** — 4096 pixels reduced to roughly 100 numbers per photo. That is the point of PCA.
+## Fixed settings
 
-## Method, if you need to write it up
+| setting | value |
+| --- | --- |
+| image size | 64 x 64 grayscale |
+| features per image | 4096 |
+| PCA variance retained | 95% |
+| KNN neighbours (K) | 5 |
+| KNN weighting | distance |
+| train / test | 80% / 20%, stratified |
+| random_state | 42 |
 
-1. Every photo is converted to grayscale and resized to 64x64, giving a 4096-value vector.
-2. Photos are split per person, so each person appears in both train and test.
-3. PCA is fit **only** on the training set. The test set is never seen during fitting.
-4. Both sets are projected onto the top components (the eigenfaces).
-5. Each test face is labelled with its nearest training face in that reduced space (1-nearest-neighbour, Euclidean distance).
+No hyperparameter searching is performed. Every value above is fixed so both
+datasets and both experiments are treated identically.
 
-## Settings you can change
+## Not included yet
 
-```python
-IMAGE_SIZE = 64       # bigger = more detail, slower
-N_COMPONENTS = 100    # how many eigenfaces to keep
-TEST_SHARE = 0.25     # held-out share per person
-MAX_PEOPLE = 20       # raise toward 105 for the full dataset
-MAX_PER_PERSON = 40   # cap per person, keeps the run fast
-```
-
-Changing `MAX_PEOPLE` and `N_COMPONENTS` and recording how accuracy moves makes a good results section.
+LBPH is deliberately left out. It will be added later as a separate
+recognition branch.

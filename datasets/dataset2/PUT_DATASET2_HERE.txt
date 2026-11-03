@@ -1,0 +1,9 @@
+Put the SECOND dataset here, one folder per person.
+
+    datasets/dataset2/person01/image1.png
+    datasets/dataset2/person01/image2.png
+
+This dataset is loaded, split, trained and evaluated completely separately
+from dataset1. Their images are never combined.
+
+Delete this file once your data is in place.
