@@ -54,8 +54,13 @@ def save_accuracy_comparison_chart(results, dataset_name, output_dir):
     names = [r["name"] for r in results]
     accuracies = [r["accuracy"] for r in results]
 
-    fig, ax = plt.subplots(figsize=(7, 5))
-    bars = ax.bar(names, accuracies, color=["#4C72B0", "#DD8452"], width=0.55)
+    # One colour per model. Cycled so the chart keeps working if another
+    # experiment is added later.
+    palette = ["#4C72B0", "#DD8452", "#55A868", "#C44E52", "#8172B3"]
+    colors = [palette[i % len(palette)] for i in range(len(names))]
+
+    fig, ax = plt.subplots(figsize=(8, 5))
+    bars = ax.bar(names, accuracies, color=colors, width=0.55)
 
     # Print the exact value on top of each bar so the chart is readable alone.
     for bar, accuracy in zip(bars, accuracies):

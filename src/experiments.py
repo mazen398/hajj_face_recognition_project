@@ -34,6 +34,7 @@ from sklearn.model_selection import train_test_split
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.pipeline import Pipeline
 
+from src.lbph import LBPH_GRID_X, LBPH_GRID_Y, LBPH_NEIGHBORS, LBPH_RADIUS
 from src.preprocessing import IMAGE_SIZE, N_FEATURES
 
 # ---------------------------------------------------------------------------
@@ -136,8 +137,20 @@ def build_pca_lda_knn_pipeline():
     )
 
 
-def split_dataset(X, y):
-    """Split ONE dataset into 80% training and 20% testing.
+def split_indices(y):
+    """Split ONE dataset into 80% training and 20% testing, by INDEX.
+
+    IN  : y, the identity label of every image in this dataset.
+    OUT : train_idx, test_idx - two arrays of positions into the dataset.
+
+    WHY INDICES RATHER THAN THE ARRAYS THEMSELVES
+    ---------------------------------------------
+    Every image has two representations: a 4096-value vector for PCA and a
+    64x64 image for LBPH. Splitting the positions once and then applying those
+    same positions to both representations guarantees that all three
+    experiments train on the identical photographs and are tested on the
+    identical photographs. Splitting each representation separately would risk
+    them drifting apart and would make the comparison meaningless.
 
     stratify=y keeps the proportion of each identity roughly the same in both
     halves, so no person ends up entirely in the training set or entirely in
@@ -149,9 +162,9 @@ def split_dataset(X, y):
     There is deliberately NO validation set: the brief asks for a single final
     evaluation on the untouched test set.
     """
+    positions = np.arange(len(y))
     return train_test_split(
-        X,
-        y,
+        positions,
         test_size=TEST_SIZE,
         random_state=RANDOM_STATE,
         stratify=y,
@@ -180,6 +193,9 @@ def run_single_experiment(name, pipeline, X_train, X_test, y_train, y_test):
 
     return {
         "name": name,
+        # "kind" tells the report which block of settings to print.
+        # LBPH results are built in src/lbph.py and use kind="lbph".
+        "kind": "sklearn",
         "accuracy": accuracy,
         "y_predicted": y_predicted,
         "n_pca_components": n_pca_components,
@@ -211,10 +227,19 @@ def print_dataset_summary(dataset_name, X, y, X_train, X_test, results):
         print(result["name"])
         print("-" * 31)
         print()
-        print(f"PCA variance retained: {int(PCA_VARIANCE_RETAINED * 100)}%")
-        print(f"Number of PCA components selected: {result['n_pca_components']}")
-        if result["n_lda_components"] is not None:
-            print(f"Number of LDA components: {result['n_lda_components']}")
-        print(f"K: {KNN_NEIGHBORS}")
-        print(f"Weighting: {KNN_WEIGHTS}")
+
+        if result.get("kind") == "lbph":
+            # LBPH has no PCA or LDA stage, so it reports its own settings.
+            print(f"Radius: {LBPH_RADIUS}")
+            print(f"Neighbors: {LBPH_NEIGHBORS}")
+            print(f"Grid X: {LBPH_GRID_X}")
+            print(f"Grid Y: {LBPH_GRID_Y}")
+        else:
+            print(f"PCA variance retained: {int(PCA_VARIANCE_RETAINED * 100)}%")
+            print(f"Number of PCA components selected: {result['n_pca_components']}")
+            if result["n_lda_components"] is not None:
+                print(f"Number of LDA components: {result['n_lda_components']}")
+            print(f"K: {KNN_NEIGHBORS}")
+            print(f"Weighting: {KNN_WEIGHTS}")
+
         print(f"Test accuracy: {result['accuracy']:.4f}  ({result['accuracy']:.2%})")

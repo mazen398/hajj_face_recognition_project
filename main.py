@@ -30,8 +30,9 @@ from src.experiments import (
     build_pca_lda_knn_pipeline,
     print_dataset_summary,
     run_single_experiment,
-    split_dataset,
+    split_indices,
 )
+from src.lbph import run_lbph_experiment
 
 # The datasets to run, in order. Each entry is processed on its own.
 DATASETS = ["datasets/dataset1", "datasets/dataset2"]
@@ -49,22 +50,38 @@ def run_experiment(dataset_dir):
     # ---------------------------------------------------------------
     # STEP 1 - LOAD
     # In  : a folder of identity subfolders full of images.
-    # Out : X (n_images, 4096) and y (n_images,) for THIS dataset only.
+    # Out : X      (n_images, 4096) float, for PCA / LDA / KNN
+    #       X_lbph list of 64x64 uint8 images, for LBPH
+    #       y      (n_images,) identity labels
+    # All three are aligned by index and belong to THIS dataset only.
     # ---------------------------------------------------------------
     print(f"\nLoading {dataset_dir} ...")
-    X, y = load_dataset(dataset_dir)
+    X, X_lbph, y = load_dataset(dataset_dir)
 
     # ---------------------------------------------------------------
-    # STEP 2 - SPLIT
+    # STEP 2 - SPLIT, ONCE, SHARED BY ALL THREE EXPERIMENTS
     # In  : all the images of this dataset.
-    # Out : 80% training, 20% testing, stratified by identity.
-    # The test set is now set aside and not touched until step 4.
+    # Out : the positions of the 80% training images and the 20% test images,
+    #       stratified by identity.
+    # Applying the same positions to X and to X_lbph means every experiment
+    # sees the same photographs. The test set is now set aside until step 4.
     # ---------------------------------------------------------------
-    X_train, X_test, y_train, y_test = split_dataset(X, y)
+    train_idx, test_idx = split_indices(y)
+
+    X_train, X_test = X[train_idx], X[test_idx]
+    y_train, y_test = y[train_idx], y[test_idx]
+
+    # The same split, applied to the LBPH version of the very same images.
+    lbph_train_images = [X_lbph[i] for i in train_idx]
+    lbph_test_images = [X_lbph[i] for i in test_idx]
 
     # ---------------------------------------------------------------
-    # STEP 3 - TRAIN both pipelines on the training set only.
+    # STEP 3 - TRAIN each model on the training set only.
     # STEP 4 - EVALUATE each one exactly once on the untouched test set.
+    #
+    # Experiment 1 and 2 are scikit-learn pipelines.
+    # Experiment 3 is LBPH, a separate branch that never sees PCA or LDA
+    # features - it receives the grayscale images directly.
     # ---------------------------------------------------------------
     results = [
         run_single_experiment(
@@ -83,6 +100,12 @@ def run_experiment(dataset_dir):
             y_train,
             y_test,
         ),
+        run_lbph_experiment(
+            lbph_train_images,
+            y_train,
+            lbph_test_images,
+            y_test,
+        ),
     ]
 
     # ---------------------------------------------------------------
@@ -99,6 +122,7 @@ def run_experiment(dataset_dir):
     confusion_matrix_filenames = {
         "PCA + KNN": "confusion_matrix_pca_knn.png",
         "PCA + LDA + KNN": "confusion_matrix_pca_lda_knn.png",
+        "LBPH": "confusion_matrix_lbph.png",
     }
     for result in results:
         save_confusion_matrix(

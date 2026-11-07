@@ -75,3 +75,47 @@ def preprocess_image(image_path):
     feature_vector = normalized_image.flatten()
 
     return feature_vector
+
+
+def preprocess_image_lbph(image_path):
+    """Turn one image file into a 64x64 grayscale image for LBPH.
+
+    WHAT COMES IN : the path of one image file.
+    WHAT GOES OUT : a 2-D NumPy array of shape (64, 64) holding uint8 values
+                    in the normal 0-255 range. Returns None if unreadable.
+
+    WHY THIS IS DIFFERENT FROM preprocess_image()
+    ---------------------------------------------
+    LBPH is not a vector method, so the last two steps above are deliberately
+    skipped:
+
+      * NOT normalised to 0-1. LBPH compares each pixel against its neighbours
+        to build a binary pattern, and OpenCV's implementation expects 8-bit
+        values. Float images in the 0-1 range are rejected.
+      * NOT flattened. LBPH needs the 2-D grid because it divides the image
+        into an 8 x 8 arrangement of cells and builds a histogram per cell.
+        Flattening would destroy the spatial layout it depends on.
+
+    The first three steps - read, grayscale, resize to 64 x 64 - are identical
+    to the PCA path, so all three experiments see the same picture content at
+    the same resolution.
+    """
+    # STEP 1 - READ THE IMAGE FROM DISK (same byte-safe read as above).
+    raw_bytes = np.fromfile(str(image_path), dtype=np.uint8)
+    if raw_bytes.size == 0:
+        return None
+
+    image = cv2.imdecode(raw_bytes, cv2.IMREAD_COLOR)
+    if image is None:
+        return None
+
+    # STEP 2 - CONVERT TO GRAYSCALE.
+    gray_image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+
+    # STEP 3 - RESIZE TO A FIXED 64 x 64.
+    resized_image = cv2.resize(
+        gray_image, (IMAGE_SIZE, IMAGE_SIZE), interpolation=cv2.INTER_AREA
+    )
+
+    # Stop here. Keep it 2-D and keep it uint8.
+    return resized_image.astype(np.uint8)

@@ -1,5 +1,12 @@
 numpy>=1.26
-opencv-python>=4.9
+
+# opencv-contrib-python, NOT opencv-python. LBPH lives in cv2.face, which
+# ships only in the contrib build. Installing both packages together causes
+# them to overwrite each other, so only this one is listed.
+# If plain OpenCV is already installed, remove it first:
+#     pip uninstall -y opencv-python opencv-python-headless
+opencv-contrib-python>=4.9
+
 scikit-learn>=1.4
 matplotlib>=3.8
 pandas>=2.2
