@@ -1,43 +1,27 @@
-"""
-EVALUATION
-==========
+"""Save the CSV, comparison graph and confusion matrices for one dataset."""
 
-WHAT COMES IN : the true test labels, the predicted test labels, and the
-                accuracy of each experiment.
-WHAT HAPPENS  : the numbers are turned into the files that go in the report.
-WHAT GOES OUT : a CSV table, an accuracy bar chart, and one confusion matrix
-                image per experiment.
-
-WHY THIS STEP IS NECESSARY
---------------------------
-A single accuracy number says how often the system was right, but not WHERE it
-went wrong. The confusion matrix shows which identity was mistaken for which,
-which is the interesting part when you have to explain the result.
-
-Every file is written inside the folder belonging to its own dataset, so
-dataset1 results and dataset2 results are never written to the same place.
-"""
-
+# Standard libraries
 from pathlib import Path
 
+# Plotting
 import matplotlib
 
-# "Agg" draws charts straight to image files without needing a screen.
-# This must be set before pyplot is imported.
+# Use a non-interactive backend, must be set before pyplot
 matplotlib.use("Agg")
 
 import matplotlib.pyplot as plt
+
+# Machine learning libraries
 import numpy as np
 import pandas as pd
 from sklearn.metrics import confusion_matrix
 
-# Above this many identities the axis labels become an unreadable smear,
-# so we draw the matrix without text labels instead.
+# Above this many identities, axis labels are left off
 MAX_LABELS_ON_AXIS = 25
 
 
 def save_comparison_csv(results, output_dir):
-    """Write final_model_comparison.csv with one row per experiment."""
+    """Save final_model_comparison.csv."""
     table = pd.DataFrame(
         {
             "Model": [r["name"] for r in results],
@@ -50,19 +34,18 @@ def save_comparison_csv(results, output_dir):
 
 
 def save_accuracy_comparison_chart(results, dataset_name, output_dir):
-    """Bar chart comparing the final test accuracy of the two experiments."""
+    """Create the accuracy comparison graph."""
     names = [r["name"] for r in results]
     accuracies = [r["accuracy"] for r in results]
 
-    # One colour per model. Cycled so the chart keeps working if another
-    # experiment is added later.
+    # One colour per model
     palette = ["#4C72B0", "#DD8452", "#55A868", "#C44E52", "#8172B3"]
     colors = [palette[i % len(palette)] for i in range(len(names))]
 
     fig, ax = plt.subplots(figsize=(8, 5))
     bars = ax.bar(names, accuracies, color=colors, width=0.55)
 
-    # Print the exact value on top of each bar so the chart is readable alone.
+    # Label each bar with its accuracy
     for bar, accuracy in zip(bars, accuracies):
         ax.text(
             bar.get_x() + bar.get_width() / 2,
@@ -78,6 +61,7 @@ def save_accuracy_comparison_chart(results, dataset_name, output_dir):
     ax.grid(axis="y", alpha=0.3)
     ax.set_axisbelow(True)
 
+    # Save graph
     fig.tight_layout()
     output_path = Path(output_dir) / "accuracy_comparison.png"
     fig.savefig(output_path, dpi=150)
@@ -86,13 +70,8 @@ def save_accuracy_comparison_chart(results, dataset_name, output_dir):
 
 
 def save_confusion_matrix(y_true, y_predicted, title, output_path):
-    """Draw and save one confusion matrix.
-
-    Rows    = the identity the photo actually belongs to.
-    Columns = the identity the system predicted.
-    A perfect system puts every count on the diagonal.
-    """
-    # labels= fixes the row/column order so it is identical in both matrices.
+    """Create a confusion matrix: rows are true identities, columns predicted."""
+    # Fixed label order so every matrix matches
     labels = np.unique(np.concatenate([y_true, y_predicted]))
     matrix = confusion_matrix(y_true, y_predicted, labels=labels)
 
@@ -106,13 +85,13 @@ def save_confusion_matrix(y_true, y_predicted, title, output_path):
     ax.set_ylabel("True identity")
     ax.set_title(title)
 
+    # With few identities, show names and counts
     if len(labels) <= MAX_LABELS_ON_AXIS:
         ax.set_xticks(range(len(labels)))
         ax.set_yticks(range(len(labels)))
         ax.set_xticklabels(labels, rotation=90, fontsize=8)
         ax.set_yticklabels(labels, fontsize=8)
 
-        # With few identities there is room to print the counts in the cells.
         threshold = matrix.max() / 2 if matrix.max() else 0
         for row in range(matrix.shape[0]):
             for col in range(matrix.shape[1]):
@@ -133,6 +112,7 @@ def save_confusion_matrix(y_true, y_predicted, title, output_path):
         ax.set_xlabel(f"Predicted identity ({len(labels)} identities)")
         ax.set_ylabel(f"True identity ({len(labels)} identities)")
 
+    # Save figure
     fig.tight_layout()
     fig.savefig(output_path, dpi=150)
     plt.close(fig)
